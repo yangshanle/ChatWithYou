@@ -8,7 +8,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MessageDaoImpl implements MessageDao {
 
@@ -92,5 +94,54 @@ public class MessageDaoImpl implements MessageDao {
             JDBCUtils.close(conn, pstmt);
         }
         return rows;
+    }
+
+    @Override
+    public int countUnreadMsg(Integer myId, Integer friendId) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        int count = 0;
+        try {
+            conn = JDBCUtils.getConnection();
+            String sql = "SELECT COUNT(*) FROM private_message " +
+                    "WHERE from_user_id = ? AND to_user_id = ? AND is_read = 0";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, friendId);
+            pstmt.setInt(2, myId);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            JDBCUtils.close(conn, pstmt, rs);
+        }
+        return count;
+    }
+
+    @Override
+    public Map<Integer, Integer> countAllUnreadMsg(Integer myId) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Map<Integer, Integer> map = new HashMap<>();
+        try {
+            conn = JDBCUtils.getConnection();
+            String sql = "SELECT from_user_id, COUNT(*) as cnt FROM private_message " +
+                    "WHERE to_user_id = ? AND is_read = 0 GROUP BY from_user_id";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, myId);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                map.put(rs.getInt("from_user_id"), rs.getInt("cnt"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            JDBCUtils.close(conn, pstmt, rs);
+        }
+        return map;
     }
 }

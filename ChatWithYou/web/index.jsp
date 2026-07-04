@@ -1056,10 +1056,12 @@
 <script>
     const ctx = '${pageContext.request.contextPath}';
     const userAvatarText = '<%= avatarText %>';
+    const userId = <%= loginUser.getId() %>;
     let currentFriendId = null;
     let currentFriendName = '';
     let msgTimer = null;
     let lastMsgId = 0;
+    let ws = null;
 
     window.onload = function() {
         initTheme();
@@ -1070,11 +1072,58 @@
         refreshRequestDot();
         initShortcuts();
         initMobileMenu();
+        initWebSocket();
 
         document.getElementById('profileBtn').addEventListener('click', function() {
             window.location.href = ctx + '/profile';
         });
     };
+
+    function initWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host + ctx + '/ws/chat?userId=' + userId;
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = function() {
+            console.log('WebSocket connected');
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'newMessage') {
+                const msg = data.data;
+                if (currentFriendId && msg.fromUserId == currentFriendId) {
+                    appendMessage(msg);
+                    loadFriendList();
+                }
+            } else if (data.type === 'sendSuccess') {
+                loadFriendList();
+            } else if (data.type === 'sendFailed') {
+                alert(data.msg);
+            }
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket disconnected');
+            setTimeout(initWebSocket, 3000);
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    function appendMessage(msg) {
+        const msgContainer = document.getElementById('msgContainer');
+        if (msgContainer.querySelector('.chat-empty')) {
+            msgContainer.innerHTML = '';
+        }
+        msgContainer.insertAdjacentHTML('beforeend', buildMsgHtml(msg));
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+        if (msg.id) {
+            lastMsgId = msg.id;
+        }
+    }
 
     function initTheme() {
         const saved = localStorage.getItem('chat-theme');
@@ -1138,6 +1187,8 @@
                 const friend = list[i];
                 const name = friend.username;
                 const avatarChar = name.charAt(name.length - 1);
+                const unread = friend.unread || 0;
+                const unreadHtml = unread > 0 ? '<span class="unread-badge" style="display:flex;">' + unread + '</span>' : '<span class="unread-badge"></span>';
                 html += '<div class="session-item" data-id="' + friend.id + '" data-name="' + name + '">' +
                     '<div class="session-avatar">' + avatarChar + '</div>' +
                     '<div class="session-info">' +
@@ -1147,7 +1198,7 @@
                     '</div>' +
                     '<div class="session-bottom">' +
                     '<div class="session-last-msg">点击开始聊天</div>' +
-                    '<span class="unread-badge"></span>' +
+                    unreadHtml +
                     '</div>' +
                     '</div>' +
                     '</div>';
@@ -1166,7 +1217,6 @@
                     lastMsgId = 0;
                     openChatWindow(currentFriendName);
                     loadHistoryMsg();
-                    startMsgPolling();
                     if (window.innerWidth <= 768) {
                         document.getElementById('sessionPanel').classList.remove('show');
                     }
@@ -1223,6 +1273,7 @@
             if (hasNew) {
                 msgContainer.scrollTop = msgContainer.scrollHeight;
             }
+            loadFriendList();
         };
         xhr.send();
     }
@@ -1250,13 +1301,6 @@
                 '</div>';
         }
     }
-    function startMsgPolling() {
-        if (msgTimer) clearInterval(msgTimer);
-        msgTimer = setInterval(function() {
-            if (currentFriendId) loadHistoryMsg();
-        }, 3000);
-    }
-
     function initSearch() {
         const searchInput = document.getElementById('searchInput');
         const searchResult = document.getElementById('searchResult');
@@ -1413,21 +1457,14 @@
 
         function sendMessage() {
             const content = msgInput.value.trim();
-            if (!content || !currentFriendId) return;
+            if (!content || !currentFriendId || !ws) return;
 
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', ctx + '/sendPrivateMsg', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onload = function() {
-                const data = JSON.parse(xhr.responseText);
-                if (data.success) {
-                    msgInput.value = '';
-                    loadHistoryMsg();
-                } else {
-                    alert(data.msg);
-                }
+            const msg = {
+                toUserId: parseInt(currentFriendId),
+                content: content
             };
-            xhr.send('toUserId=' + encodeURIComponent(currentFriendId) + '&content=' + encodeURIComponent(content));
+            ws.send(JSON.stringify(msg));
+            msgInput.value = '';
         }
 
         sendBtn.addEventListener('click', sendMessage);

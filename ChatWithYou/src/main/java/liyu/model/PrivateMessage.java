@@ -8,6 +8,7 @@ public class PrivateMessage {
     private String content;
     private Integer isRead;
     private Date createTime;
+    private Integer isSelf;
     // 额外字段：发送者昵称
     private String fromNickname;
 
@@ -122,6 +123,22 @@ public class PrivateMessage {
 
     /**
      * 获取
+     * @return isSelf
+     */
+    public Integer getIsSelf() {
+        return isSelf;
+    }
+
+    /**
+     * 设置
+     * @param isSelf
+     */
+    public void setIsSelf(Integer isSelf) {
+        this.isSelf = isSelf;
+    }
+
+    /**
+     * 获取
      * @return fromNickname
      */
     public String getFromNickname() {
@@ -137,7 +154,7 @@ public class PrivateMessage {
     }
 
     public String toString() {
-        return "PrivateMessage{id = " + id + ", fromUserId = " + fromUserId + ", toUserId = " + toUserId + ", content = " + content + ", isRead = " + isRead + ", createTime = " + createTime + ", fromNickname = " + fromNickname + "}";
+        return "PrivateMessage{id = " + id + ", fromUserId = " + fromUserId + ", toUserId = " + toUserId + ", content = " + content + ", isRead = " + isRead + ", createTime = " + createTime + ", isSelf = " + isSelf + ", fromNickname = " + fromNickname + "}";
     }
 
 }

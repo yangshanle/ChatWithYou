@@ -8,6 +8,7 @@ import liyu.model.PrivateMessage;
 import liyu.services.MessageService;
 
 import java.util.List;
+import java.util.Map;
 
 public class MessageServiceImpl implements MessageService {
 
@@ -38,5 +39,18 @@ public class MessageServiceImpl implements MessageService {
         // 拉取消息前先标记已读
         messageDao.markRead(myId, friendId);
         return messageDao.listPrivateMsg(myId, friendId);
+    }
+
+    @Override
+    public int countUnreadMsg(Integer myId, Integer friendId) {
+        if (!friendDao.isFriend(myId, friendId)) {
+            return 0;
+        }
+        return messageDao.countUnreadMsg(myId, friendId);
+    }
+
+    @Override
+    public Map<Integer, Integer> countAllUnreadMsg(Integer myId) {
+        return messageDao.countAllUnreadMsg(myId);
     }
 }
