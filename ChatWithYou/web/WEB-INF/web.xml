@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    <!-- 好友系统 -->
+    <servlet>
+        <servlet-name>SearchFriendServlet</servlet-name>
+        <servlet-class>liyu.control.SearchFriendServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SearchFriendServlet</servlet-name>
+        <url-pattern>/searchFriend</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>SendFriendRequestServlet</servlet-name>
+        <servlet-class>liyu.control.SendFriendRequestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SendFriendRequestServlet</servlet-name>
+        <url-pattern>/sendFriendRequest</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>FriendRequestListServlet</servlet-name>
+        <servlet-class>liyu.control.FriendRequestListServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>FriendRequestListServlet</servlet-name>
+        <url-pattern>/friendRequestList</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>HandleFriendRequestServlet</servlet-name>
+        <servlet-class>liyu.control.HandleFriendRequestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>HandleFriendRequestServlet</servlet-name>
+        <url-pattern>/handleFriendRequest</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>FriendListServlet</servlet-name>
+        <servlet-class>liyu.control.FriendListServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>FriendListServlet</servlet-name>
+        <url-pattern>/friendList</url-pattern>
+    </servlet-mapping>
+    <!-- 私聊消息 -->
+    <servlet>
+        <servlet-name>SendPrivateMsgServlet</servlet-name>
+        <servlet-class>liyu.control.SendPrivateMsgServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SendPrivateMsgServlet</servlet-name>
+        <url-pattern>/sendPrivateMsg</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>GetPrivateMsgServlet</servlet-name>
+        <servlet-class>liyu.control.GetPrivateMsgServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>GetPrivateMsgServlet</servlet-name>
+        <url-pattern>/getPrivateMsg</url-pattern>
+    </servlet-mapping>
+</web-app>
