@@ -16,6 +16,24 @@ import java.util.List;
 public class GetPrivateMsgServlet extends HttpServlet {
     private MessageService messageService = new MessageServiceImpl();
 
+    private String escapeJson(String str) {
+        if (str == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (char c : str.toCharArray()) {
+            switch (c) {
+                case '\"': sb.append("\\\""); break;
+                case '\\': sb.append("\\\\"); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                case '\b': sb.append("\\b"); break;
+                case '\f': sb.append("\\f"); break;
+                default: sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
@@ -37,17 +55,15 @@ public class GetPrivateMsgServlet extends HttpServlet {
                 return;
             }
 
-            // 把原来的循环替换成下面这段
             StringBuilder json = new StringBuilder("[");
             for (int i = 0; i < list.size(); i++) {
                 PrivateMessage msg = list.get(i);
                 json.append("{\"id\":").append(msg.getId())
                         .append(",\"fromUserId\":").append(msg.getFromUserId())
-                        .append(",\"content\":\"").append(msg.getContent()).append("\"")
+                        .append(",\"content\":\"").append(escapeJson(msg.getContent())).append("\"")
                         .append(",\"isSelf\":").append(msg.getFromUserId().equals(loginUser.getId()) ? 1 : 0)
-                        .append(",\"fromNickname\":\"").append(msg.getFromNickname() == null ? "" : msg.getFromNickname()).append("\"")
+                        .append(",\"fromNickname\":\"").append(escapeJson(msg.getFromNickname() == null ? "" : msg.getFromNickname())).append("\"")
                         .append(",\"isRead\":").append(msg.getIsRead())
-                        // 补上时间戳（毫秒数，前端直接new Date使用）
                         .append(",\"createTime\":").append(msg.getCreateTime() == null ? 0 : msg.getCreateTime().getTime())
                         .append("}");
                 if (i != list.size() - 1) json.append(",");

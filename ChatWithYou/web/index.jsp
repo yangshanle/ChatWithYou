@@ -1084,24 +1084,49 @@
                 const xhr = new XMLHttpRequest();
                 xhr.open('GET', ctx + '/getPrivateMsg?friendId=' + currentFriendId, true);
                 xhr.onload = function() {
-                    const list = JSON.parse(xhr.responseText);
-                    if (list.length === 0) return;
+                    if (xhr.status !== 200) return;
+                    try {
+                        const list = JSON.parse(xhr.responseText);
+                        if (list.length === 0) return;
 
-                    let hasNew = false;
-                    for (let i = 0; i < list.length; i++) {
-                        if (list[i].id > lastMsgId) {
-                            hasNew = true;
-                            break;
+                        let hasNew = false;
+                        for (let i = 0; i < list.length; i++) {
+                            if (list[i].id > lastMsgId) {
+                                hasNew = true;
+                                break;
+                            }
                         }
-                    }
 
-                    if (hasNew) {
-                        loadHistoryMsg();
+                        if (hasNew) {
+                            appendNewMessages(list);
+                        }
+                    } catch (e) {
+                        console.error('消息解析失败:', e);
                     }
+                };
+                xhr.onerror = function() {
+                    console.error('消息轮询请求失败');
                 };
                 xhr.send();
             }
         }, 2000);
+    }
+
+    function appendNewMessages(list) {
+        const msgContainer = document.getElementById('msgContainer');
+        let hasNew = false;
+        for (let i = 0; i < list.length; i++) {
+            const msg = list[i];
+            if (msg.id > lastMsgId) {
+                msgContainer.insertAdjacentHTML('beforeend', buildMsgHtml(msg));
+                lastMsgId = msg.id;
+                hasNew = true;
+            }
+        }
+        if (hasNew) {
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+            loadFriendList();
+        }
     }
 
     function stopMsgPolling() {
@@ -1175,52 +1200,60 @@
         const xhr = new XMLHttpRequest();
         xhr.open('GET', ctx + '/friendList', true);
         xhr.onload = function() {
-            const list = JSON.parse(xhr.responseText);
-            if (list.length === 0) {
-                friendListEl.innerHTML = '<div class="session-empty">暂无好友，去搜索添加吧</div>';
-                return;
-            }
-            let html = '';
-            for (let i = 0; i < list.length; i++) {
-                const friend = list[i];
-                const name = friend.username;
-                const avatarChar = name.charAt(name.length - 1);
-                const unread = friend.unread || 0;
-                const unreadHtml = unread > 0 ? '<span class="unread-badge" style="display:flex;">' + unread + '</span>' : '<span class="unread-badge"></span>';
-                html += '<div class="session-item" data-id="' + friend.id + '" data-name="' + name + '">' +
-                    '<div class="session-avatar">' + avatarChar + '</div>' +
-                    '<div class="session-info">' +
-                    '<div class="session-top">' +
-                    '<div class="session-name">' + name + '</div>' +
-                    '<span class="session-time"></span>' +
-                    '</div>' +
-                    '<div class="session-bottom">' +
-                    '<div class="session-last-msg">点击开始聊天</div>' +
-                    unreadHtml +
-                    '</div>' +
-                    '</div>' +
-                    '</div>';
-            }
-            friendListEl.innerHTML = html;
+            if (xhr.status !== 200) return;
+            try {
+                const list = JSON.parse(xhr.responseText);
+                if (list.length === 0) {
+                    friendListEl.innerHTML = '<div class="session-empty">暂无好友，去搜索添加吧</div>';
+                    return;
+                }
+                let html = '';
+                for (let i = 0; i < list.length; i++) {
+                    const friend = list[i];
+                    const name = friend.username;
+                    const avatarChar = name.charAt(name.length - 1);
+                    const unread = friend.unread || 0;
+                    const unreadHtml = unread > 0 ? '<span class="unread-badge" style="display:flex;">' + unread + '</span>' : '<span class="unread-badge"></span>';
+                    html += '<div class="session-item" data-id="' + friend.id + '" data-name="' + name + '">' +
+                        '<div class="session-avatar">' + avatarChar + '</div>' +
+                        '<div class="session-info">' +
+                        '<div class="session-top">' +
+                        '<div class="session-name">' + name + '</div>' +
+                        '<span class="session-time"></span>' +
+                        '</div>' +
+                        '<div class="session-bottom">' +
+                        '<div class="session-last-msg">点击开始聊天</div>' +
+                        unreadHtml +
+                        '</div>' +
+                        '</div>' +
+                        '</div>';
+                }
+                friendListEl.innerHTML = html;
 
-            const items = document.querySelectorAll('.session-item');
-            for (let i = 0; i < items.length; i++) {
-                items[i].addEventListener('click', function() {
-                    for (let j = 0; j < items.length; j++) {
-                        items[j].classList.remove('active');
-                    }
-                    this.classList.add('active');
-                    currentFriendId = this.getAttribute('data-id');
-                    currentFriendName = this.getAttribute('data-name');
-                    lastMsgId = 0;
-                    openChatWindow(currentFriendName);
-                    loadHistoryMsg();
-                    startMsgPolling();
-                    if (window.innerWidth <= 768) {
-                        document.getElementById('sessionPanel').classList.remove('show');
-                    }
-                });
+                const items = document.querySelectorAll('.session-item');
+                for (let i = 0; i < items.length; i++) {
+                    items[i].addEventListener('click', function() {
+                        for (let j = 0; j < items.length; j++) {
+                            items[j].classList.remove('active');
+                        }
+                        this.classList.add('active');
+                        currentFriendId = this.getAttribute('data-id');
+                        currentFriendName = this.getAttribute('data-name');
+                        lastMsgId = 0;
+                        openChatWindow(currentFriendName);
+                        loadHistoryMsg();
+                        startMsgPolling();
+                        if (window.innerWidth <= 768) {
+                            document.getElementById('sessionPanel').classList.remove('show');
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('加载好友列表失败:', e);
             }
+        };
+        xhr.onerror = function() {
+            console.error('加载好友列表请求失败');
         };
         xhr.send();
     }
@@ -1240,39 +1273,47 @@
         const xhr = new XMLHttpRequest();
         xhr.open('GET', ctx + '/getPrivateMsg?friendId=' + currentFriendId, true);
         xhr.onload = function() {
-            const list = JSON.parse(xhr.responseText);
+            if (xhr.status !== 200) return;
+            try {
+                const list = JSON.parse(xhr.responseText);
 
-            if (lastMsgId === 0 || msgContainer.querySelector('.chat-empty')) {
-                msgContainer.innerHTML = '';
-                if (list.length === 0) {
-                    msgContainer.innerHTML = '<div class="chat-empty">暂无消息，开始对话吧</div>';
-                    lastMsgId = 0;
+                if (lastMsgId === 0 || msgContainer.querySelector('.chat-empty')) {
+                    msgContainer.innerHTML = '';
+                    if (list.length === 0) {
+                        msgContainer.innerHTML = '<div class="chat-empty">暂无消息，开始对话吧</div>';
+                        lastMsgId = 0;
+                        return;
+                    }
+                    let html = '';
+                    for (let i = 0; i < list.length; i++) {
+                        const msg = list[i];
+                        html += buildMsgHtml(msg);
+                        lastMsgId = msg.id;
+                    }
+                    msgContainer.innerHTML = html;
+                    msgContainer.scrollTop = msgContainer.scrollHeight;
                     return;
                 }
-                let html = '';
+
+                let hasNew = false;
                 for (let i = 0; i < list.length; i++) {
                     const msg = list[i];
-                    html += buildMsgHtml(msg);
-                    lastMsgId = msg.id;
+                    if (msg.id > lastMsgId) {
+                        msgContainer.insertAdjacentHTML('beforeend', buildMsgHtml(msg));
+                        lastMsgId = msg.id;
+                        hasNew = true;
+                    }
                 }
-                msgContainer.innerHTML = html;
-                msgContainer.scrollTop = msgContainer.scrollHeight;
-                return;
-            }
-
-            let hasNew = false;
-            for (let i = 0; i < list.length; i++) {
-                const msg = list[i];
-                if (msg.id > lastMsgId) {
-                    msgContainer.insertAdjacentHTML('beforeend', buildMsgHtml(msg));
-                    lastMsgId = msg.id;
-                    hasNew = true;
+                if (hasNew) {
+                    msgContainer.scrollTop = msgContainer.scrollHeight;
                 }
+                loadFriendList();
+            } catch (e) {
+                console.error('加载历史消息失败:', e);
             }
-            if (hasNew) {
-                msgContainer.scrollTop = msgContainer.scrollHeight;
-            }
-            loadFriendList();
+        };
+        xhr.onerror = function() {
+            console.error('加载历史消息请求失败');
         };
         xhr.send();
     }
@@ -1316,29 +1357,37 @@
                 const xhr = new XMLHttpRequest();
                 xhr.open('GET', ctx + '/searchFriend?keyword=' + encodeURIComponent(keyword), true);
                 xhr.onload = function() {
-                    const list = JSON.parse(xhr.responseText);
-                    if (list.length === 0) {
-                        searchResult.innerHTML = '<div class="search-result-item">未找到用户</div>';
-                    } else {
-                        let html = '';
-                        for (let i = 0; i < list.length; i++) {
-                            const user = list[i];
-                            html += '<div class="search-result-item">' +
-                                '<span>' + user.username + '（' + user.nickname + '）</span>' +
-                                '<span class="add-friend-btn" data-id="' + user.id + '">添加</span>' +
-                                '</div>';
-                        }
-                        searchResult.innerHTML = html;
+                    if (xhr.status !== 200) return;
+                    try {
+                        const list = JSON.parse(xhr.responseText);
+                        if (list.length === 0) {
+                            searchResult.innerHTML = '<div class="search-result-item">未找到用户</div>';
+                        } else {
+                            let html = '';
+                            for (let i = 0; i < list.length; i++) {
+                                const user = list[i];
+                                html += '<div class="search-result-item">' +
+                                    '<span>' + user.username + '（' + user.nickname + '）</span>' +
+                                    '<span class="add-friend-btn" data-id="' + user.id + '">添加</span>' +
+                                    '</div>';
+                            }
+                            searchResult.innerHTML = html;
 
-                        const btns = document.querySelectorAll('.add-friend-btn');
-                        for (let i = 0; i < btns.length; i++) {
-                            btns[i].addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                sendFriendRequest(this.getAttribute('data-id'));
-                            });
+                            const btns = document.querySelectorAll('.add-friend-btn');
+                            for (let i = 0; i < btns.length; i++) {
+                                btns[i].addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    sendFriendRequest(this.getAttribute('data-id'));
+                                });
+                            }
                         }
+                        searchResult.style.display = 'block';
+                    } catch (e) {
+                        console.error('搜索用户失败:', e);
                     }
-                    searchResult.style.display = 'block';
+                };
+                xhr.onerror = function() {
+                    console.error('搜索用户请求失败');
                 };
                 xhr.send();
             }, 300);
@@ -1356,12 +1405,21 @@
         xhr.open('POST', ctx + '/sendFriendRequest', true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onload = function() {
-            const data = JSON.parse(xhr.responseText);
-            alert(data.msg);
-            if (data.success) {
-                document.getElementById('searchResult').style.display = 'none';
-                document.getElementById('searchInput').value = '';
+            if (xhr.status !== 200) return;
+            try {
+                const data = JSON.parse(xhr.responseText);
+                alert(data.msg || '操作失败');
+                if (data.success) {
+                    document.getElementById('searchResult').style.display = 'none';
+                    document.getElementById('searchInput').value = '';
+                }
+            } catch (e) {
+                console.error('发送好友请求失败:', e);
             }
+        };
+        xhr.onerror = function() {
+            console.error('发送好友请求失败');
+            alert('网络错误，发送失败');
         };
         xhr.send('toUserId=' + encodeURIComponent(toUserId) + '&remark=' + encodeURIComponent('你好，加个好友'));
     }
@@ -1388,37 +1446,45 @@
         const xhr = new XMLHttpRequest();
         xhr.open('GET', ctx + '/friendRequestList', true);
         xhr.onload = function() {
-            const list = JSON.parse(xhr.responseText);
-            if (list.length === 0) {
-                requestListEl.innerHTML = '<div class="empty-tip">暂无好友申请</div>';
-                return;
-            }
-            let html = '';
-            for (let i = 0; i < list.length; i++) {
-                const req = list[i];
-                html += '<div class="request-item">' +
-                    '<div class="request-info">' +
-                    '<div class="name">' + req.fromNickname + '</div>' +
-                    '<div class="remark">' + (req.remark || '请求添加你为好友') + '</div>' +
-                    '</div>' +
-                    '<div class="request-op">' +
-                    '<button class="btn-agree" data-id="' + req.id + '">同意</button>' +
-                    '<button class="btn-refuse" data-id="' + req.id + '">拒绝</button>' +
-                    '</div>' +
-                    '</div>';
-            }
-            requestListEl.innerHTML = html;
+            if (xhr.status !== 200) return;
+            try {
+                const list = JSON.parse(xhr.responseText);
+                if (list.length === 0) {
+                    requestListEl.innerHTML = '<div class="empty-tip">暂无好友申请</div>';
+                    return;
+                }
+                let html = '';
+                for (let i = 0; i < list.length; i++) {
+                    const req = list[i];
+                    html += '<div class="request-item">' +
+                        '<div class="request-info">' +
+                        '<div class="name">' + req.fromNickname + '</div>' +
+                        '<div class="remark">' + (req.remark || '请求添加你为好友') + '</div>' +
+                        '</div>' +
+                        '<div class="request-op">' +
+                        '<button class="btn-agree" data-id="' + req.id + '">同意</button>' +
+                        '<button class="btn-refuse" data-id="' + req.id + '">拒绝</button>' +
+                        '</div>' +
+                        '</div>';
+                }
+                requestListEl.innerHTML = html;
 
-            document.querySelectorAll('.btn-agree').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    handleRequest(this.getAttribute('data-id'), 1);
+                document.querySelectorAll('.btn-agree').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        handleRequest(this.getAttribute('data-id'), 1);
+                    });
                 });
-            });
-            document.querySelectorAll('.btn-refuse').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    handleRequest(this.getAttribute('data-id'), 2);
+                document.querySelectorAll('.btn-refuse').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        handleRequest(this.getAttribute('data-id'), 2);
+                    });
                 });
-            });
+            } catch (e) {
+                console.error('加载好友申请列表失败:', e);
+            }
+        };
+        xhr.onerror = function() {
+            console.error('加载好友申请列表请求失败');
         };
         xhr.send();
     }
@@ -1428,13 +1494,22 @@
         xhr.open('POST', ctx + '/handleFriendRequest', true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onload = function() {
-            const data = JSON.parse(xhr.responseText);
-            alert(data.msg);
-            if (data.success) {
-                loadRequestList();
-                loadFriendList();
-                refreshRequestDot();
+            if (xhr.status !== 200) return;
+            try {
+                const data = JSON.parse(xhr.responseText);
+                alert(data.msg || '操作失败');
+                if (data.success) {
+                    loadRequestList();
+                    loadFriendList();
+                    refreshRequestDot();
+                }
+            } catch (e) {
+                console.error('处理好友申请失败:', e);
             }
+        };
+        xhr.onerror = function() {
+            console.error('处理好友申请请求失败');
+            alert('网络错误，操作失败');
         };
         xhr.send('requestId=' + encodeURIComponent(requestId) + '&status=' + encodeURIComponent(status));
     }
@@ -1443,9 +1518,17 @@
         const xhr = new XMLHttpRequest();
         xhr.open('GET', ctx + '/friendRequestList', true);
         xhr.onload = function() {
-            const list = JSON.parse(xhr.responseText);
-            const dot = document.getElementById('requestDot');
-            dot.style.display = list.length > 0 ? 'block' : 'none';
+            if (xhr.status !== 200) return;
+            try {
+                const list = JSON.parse(xhr.responseText);
+                const dot = document.getElementById('requestDot');
+                dot.style.display = list.length > 0 ? 'block' : 'none';
+            } catch (e) {
+                console.error('刷新请求红点失败:', e);
+            }
+        };
+        xhr.onerror = function() {
+            console.error('刷新请求红点请求失败');
         };
         xhr.send();
     }
@@ -1462,13 +1545,22 @@
             xhr.open('POST', ctx + '/sendPrivateMsg', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onload = function() {
-                const data = JSON.parse(xhr.responseText);
-                if (data.success) {
-                    loadHistoryMsg();
-                    loadFriendList();
-                } else {
-                    alert(data.msg);
+                if (xhr.status !== 200) return;
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        loadHistoryMsg();
+                        loadFriendList();
+                    } else {
+                        alert(data.msg || '发送失败');
+                    }
+                } catch (e) {
+                    console.error('发送消息解析失败:', e);
                 }
+            };
+            xhr.onerror = function() {
+                console.error('发送消息请求失败');
+                alert('网络错误，发送失败');
             };
             xhr.send('toUserId=' + currentFriendId + '&content=' + encodeURIComponent(content));
             msgInput.value = '';
