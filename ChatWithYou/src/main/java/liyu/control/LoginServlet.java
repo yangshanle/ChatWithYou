@@ -3,7 +3,6 @@ package liyu.control;
 import liyu.model.User;
 import liyu.services.UserService;
 import liyu.services.impl.UserServiceImpl;
-import liyu.util.ValidationUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -30,14 +29,13 @@ public class LoginServlet extends HttpServlet {
         String username = req.getParameter("username");
         String password = req.getParameter("password");
 
-        String errorMsg = ValidationUtils.validateUsername(username);
-        if (errorMsg != null) {
-            req.setAttribute("msg", "用户名格式不正确");
+        if (username == null || username.trim().isEmpty()) {
+            req.setAttribute("msg", "用户名不能为空");
             req.getRequestDispatcher("/login.jsp").forward(req, resp);
             return;
         }
 
-        if (!ValidationUtils.isNotEmpty(password)) {
+        if (password == null || password.trim().isEmpty()) {
             req.setAttribute("msg", "密码不能为空");
             req.getRequestDispatcher("/login.jsp").forward(req, resp);
             return;

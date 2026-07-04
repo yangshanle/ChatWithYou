@@ -210,10 +210,12 @@ public class FriendDaoImpl implements FriendDao {
         boolean flag = false;
         try {
             conn = JDBCUtils.getConnection();
-            String sql = "SELECT id FROM friend WHERE user_id = ? AND friend_id = ?";
+            String sql = "SELECT id FROM friend WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)";
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, userId);
             pstmt.setInt(2, friendId);
+            pstmt.setInt(3, friendId);
+            pstmt.setInt(4, userId);
             rs = pstmt.executeQuery();
             if (rs.next()) flag = true;
         } catch (Exception e) {

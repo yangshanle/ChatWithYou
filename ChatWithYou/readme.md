@@ -17,14 +17,14 @@
 | 构建工具 | Maven | 3.6+ |
 | 前端框架 | Bootstrap | 5.3 |
 | 密码加密 | BCrypt | 0.4 |
-| 实时通信 | WebSocket | Java EE |
+| 实时通信 | AJAX轮询 | 2秒间隔 |
 | JSON处理 | Gson | 2.10.1 |
 
 ### 1.3 功能模块
 
 - **用户管理**：注册、登录、注销、个人资料修改
 - **好友系统**：搜索用户、发送好友请求、处理请求、好友列表
-- **私聊功能**：发送消息、接收消息、WebSocket实时推送、未读消息提示
+- **私聊功能**：发送消息、接收消息、AJAX轮询、未读消息提示
 
 ---
 
@@ -156,23 +156,9 @@ ChatWithYou/
 | FriendRequestListServlet | `/friendRequestList` | 获取申请列表 |
 | HandleFriendRequestServlet | `/handleFriendRequest` | 处理申请 |
 | FriendListServlet | `/friendList` | 获取好友列表（包含未读消息数量） |
-| SendPrivateMsgServlet | `/sendPrivateMsg` | 发送私聊（HTTP方式，保留兼容） |
+| SendPrivateMsgServlet | `/sendPrivateMsg` | 发送私聊（HTTP方式） |
 | GetPrivateMsgServlet | `/getPrivateMsg` | 获取私聊消息（加载历史） |
 | GlobalExceptionHandler | `/error` | 全局异常处理 |
-| ChatWebSocket | `/ws/chat` | WebSocket实时消息推送 |
-
-### 3.5 WebSocket 端点
-
-#### ChatWebSocket.java
-```java
-// 文件路径：src/main/java/liyu/control/ChatWebSocket.java
-// 功能：WebSocket实时通信端点
-// 核心逻辑：
-// 1. @OnOpen - 客户端连接时，将 userId 和 Session 存入 ConcurrentHashMap
-// 2. @OnMessage - 接收到消息时，解析JSON，验证好友关系，持久化消息，转发给目标用户
-// 3. @OnClose - 客户端断开时，从 HashMap 中移除
-// 4. @OnError - 发生错误时，清理连接
-```
 
 ### 3.6 Util 层（工具类）
 

@@ -1061,7 +1061,6 @@
     let currentFriendName = '';
     let msgTimer = null;
     let lastMsgId = 0;
-    let ws = null;
 
     window.onload = function() {
         initTheme();
@@ -1072,45 +1071,44 @@
         refreshRequestDot();
         initShortcuts();
         initMobileMenu();
-        initWebSocket();
 
         document.getElementById('profileBtn').addEventListener('click', function() {
             window.location.href = ctx + '/profile';
         });
     };
 
-    function initWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = protocol + '//' + window.location.host + ctx + '/ws/chat?userId=' + userId;
-        ws = new WebSocket(wsUrl);
+    function startMsgPolling() {
+        if (msgTimer) clearInterval(msgTimer);
+        msgTimer = setInterval(function() {
+            if (currentFriendId) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', ctx + '/getPrivateMsg?friendId=' + currentFriendId, true);
+                xhr.onload = function() {
+                    const list = JSON.parse(xhr.responseText);
+                    if (list.length === 0) return;
 
-        ws.onopen = function() {
-            console.log('WebSocket connected');
-        };
+                    let hasNew = false;
+                    for (let i = 0; i < list.length; i++) {
+                        if (list[i].id > lastMsgId) {
+                            hasNew = true;
+                            break;
+                        }
+                    }
 
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'newMessage') {
-                const msg = data.data;
-                if (currentFriendId && msg.fromUserId == currentFriendId) {
-                    appendMessage(msg);
-                    loadFriendList();
-                }
-            } else if (data.type === 'sendSuccess') {
-                loadFriendList();
-            } else if (data.type === 'sendFailed') {
-                alert(data.msg);
+                    if (hasNew) {
+                        loadHistoryMsg();
+                    }
+                };
+                xhr.send();
             }
-        };
+        }, 2000);
+    }
 
-        ws.onclose = function() {
-            console.log('WebSocket disconnected');
-            setTimeout(initWebSocket, 3000);
-        };
-
-        ws.onerror = function(error) {
-            console.error('WebSocket error:', error);
-        };
+    function stopMsgPolling() {
+        if (msgTimer) {
+            clearInterval(msgTimer);
+            msgTimer = null;
+        }
     }
 
     function appendMessage(msg) {
@@ -1217,6 +1215,7 @@
                     lastMsgId = 0;
                     openChatWindow(currentFriendName);
                     loadHistoryMsg();
+                    startMsgPolling();
                     if (window.innerWidth <= 768) {
                         document.getElementById('sessionPanel').classList.remove('show');
                     }
@@ -1457,13 +1456,21 @@
 
         function sendMessage() {
             const content = msgInput.value.trim();
-            if (!content || !currentFriendId || !ws) return;
+            if (!content || !currentFriendId) return;
 
-            const msg = {
-                toUserId: parseInt(currentFriendId),
-                content: content
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', ctx + '/sendPrivateMsg', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onload = function() {
+                const data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    loadHistoryMsg();
+                    loadFriendList();
+                } else {
+                    alert(data.msg);
+                }
             };
-            ws.send(JSON.stringify(msg));
+            xhr.send('toUserId=' + currentFriendId + '&content=' + encodeURIComponent(content));
             msgInput.value = '';
         }
 
