@@ -81,7 +81,9 @@ public class ProfileServlet extends HttpServlet {
 
         // 更新基础信息
         user.setNickname(nickname);
-        user.setEmail(email);
+        if (email != null && !email.trim().isEmpty()) {
+            user.setEmail(email);
+        }
 
         int rows = userDao.updateUser(user);
         if (rows > 0) {

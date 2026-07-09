@@ -7,6 +7,8 @@ import liyu.util.JDBCUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserDaoImpl implements UserDao {
 
@@ -18,7 +20,7 @@ public class UserDaoImpl implements UserDao {
         User user = null;
         try {
             conn = JDBCUtils.getConnection();
-            String sql = "SELECT id, username, nickname, email, password FROM `user` WHERE id = ?";
+            String sql = "SELECT id, username, nickname, email, password, role FROM `user` WHERE id = ?";
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, userId);
             rs = pstmt.executeQuery();
@@ -29,6 +31,8 @@ public class UserDaoImpl implements UserDao {
                 user.setNickname(rs.getString("nickname"));
                 user.setEmail(rs.getString("email"));
                 user.setPassword(rs.getString("password"));
+                int roleValue = rs.getInt("role");
+                user.setRole(rs.wasNull() ? null : roleValue);
             }
             System.out.println("[UserDao] 查询用户ID=" + userId + "，结果：" + (user != null ? user.getNickname() : "空"));
         } catch (Exception e) {
@@ -106,6 +110,8 @@ public class UserDaoImpl implements UserDao {
                 user.setNickname(rs.getString("nickname"));
                 user.setEmail(rs.getString("email"));
                 user.setPassword(rs.getString("password"));
+                int roleValue = rs.getInt("role");
+                user.setRole(rs.wasNull() ? null : roleValue);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -113,5 +119,103 @@ public class UserDaoImpl implements UserDao {
             JDBCUtils.close(conn, pstmt, rs);
         }
         return user;
+    }
+
+    @Override
+    public List<User> findAllUsers() {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        List<User> list = new ArrayList<>();
+        try {
+            conn = JDBCUtils.getConnection();
+            String sql = "SELECT id, username, nickname, email, role FROM `user` ORDER BY id ASC";
+            pstmt = conn.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                User user = new User();
+                user.setId(rs.getInt("id"));
+                user.setUsername(rs.getString("username"));
+                user.setNickname(rs.getString("nickname"));
+                user.setEmail(rs.getString("email"));
+                int roleValue = rs.getInt("role");
+                user.setRole(rs.wasNull() ? null : roleValue);
+                list.add(user);
+            }
+            System.out.println("[UserDao] 查询所有用户成功，共 " + list.size() + " 条");
+        } catch (Exception e) {
+            System.err.println("[UserDao] 查询所有用户失败：");
+            e.printStackTrace();
+        } finally {
+            JDBCUtils.close(conn, pstmt, rs);
+        }
+        return list;
+    }
+
+    @Override
+    public int deleteUser(Integer userId) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        int rows = 0;
+        try {
+            conn = JDBCUtils.getConnection();
+            String sql = "DELETE FROM `user` WHERE id = ?";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            rows = pstmt.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            JDBCUtils.close(conn, pstmt, null);
+        }
+        return rows;
+    }
+
+    @Override
+    public int updateUserRole(Integer userId, Integer role) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        int rows = 0;
+        try {
+            conn = JDBCUtils.getConnection();
+            String sql = "UPDATE `user` SET role = ? WHERE id = ?";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, role);
+            pstmt.setInt(2, userId);
+            rows = pstmt.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            JDBCUtils.close(conn, pstmt, null);
+        }
+        return rows;
+    }
+
+    @Override
+    public int updateUserInfo(Integer userId, String nickname, String email, Integer role) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        int rows = 0;
+        try {
+            conn = JDBCUtils.getConnection();
+            String sql = "UPDATE `user` SET nickname = ?, email = ?, role = ? WHERE id = ?";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, nickname);
+            pstmt.setString(2, email);
+            if (role != null) {
+                pstmt.setInt(3, role);
+            } else {
+                pstmt.setNull(3, java.sql.Types.INTEGER);
+            }
+            pstmt.setInt(4, userId);
+            rows = pstmt.executeUpdate();
+            System.out.println("[UserDao] 更新用户信息ID=" + userId + "，受影响行数：" + rows);
+        } catch (Exception e) {
+            System.err.println("[UserDao] 更新用户信息失败：");
+            e.printStackTrace();
+        } finally {
+            JDBCUtils.close(conn, pstmt, null);
+        }
+        return rows;
     }
 }

@@ -1,0 +1,22 @@
+# Maven target
+target/
+
+# IDE files
+.idea/
+*.iml
+.settings/
+.project
+.classpath
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# API keys / secrets
+ai.properties
+db.properties
+
+# Documentation / tutorial files
+ChatWithYou_课程设计报告.docx
+fullstack-messaging-tutorial.md
+project-diary.md
